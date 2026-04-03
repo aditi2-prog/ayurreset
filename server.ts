@@ -21,6 +21,11 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Razorpay Config API
+  app.get('/api/razorpay-key', (req, res) => {
+    res.json({ keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder' });
+  });
+
   // Razorpay Order Creation API
   app.post('/api/create-order', async (req, res) => {
     const { amount, currency = 'INR', receipt } = req.body;

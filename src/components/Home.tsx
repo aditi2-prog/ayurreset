@@ -528,6 +528,7 @@ const Footer = () => (
       <div>
         <h4 className="text-white font-bold mb-4">Support</h4>
         <ul className="space-y-2">
+          <li><a href="https://razorpay.me/@draditichourasia" target="_blank" rel="noopener noreferrer" className="hover:text-white">Direct Payment Profile</a></li>
           <li><a href="#" className="hover:text-white">Contact Us</a></li>
           <li><a href="#" className="hover:text-white">Terms of Service</a></li>
           <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
@@ -564,7 +565,11 @@ export default function Home() {
 
   const handlePayment = async (amount: number) => {
     try {
-      // 1. Create order on backend
+      // 1. Get Razorpay Key ID
+      const keyResponse = await fetch('/api/razorpay-key');
+      const { keyId } = await keyResponse.json();
+
+      // 2. Create order on backend
       const response = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -578,7 +583,7 @@ export default function Home() {
       }
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        key: keyId,
         amount: order.amount,
         currency: order.currency,
         name: "AyurReset",
