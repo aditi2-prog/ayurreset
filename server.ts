@@ -7,17 +7,13 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-console.log('Available Environment Variables:', Object.keys(process.env).filter(key => key.includes('RAZORPAY')));
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_placeholder',
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || '',
 });
-
-console.log('Razorpay Initialized with Key ID:', process.env.RAZORPAY_KEY_ID ? 'PRESENT' : 'MISSING');
 
 async function startServer() {
   const app = express();
@@ -25,33 +21,35 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Razorpay Config API
+  // Razorpay Config API - Returns only the public Key ID
   app.get('/api/razorpay-key', (req, res) => {
-    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
-    console.log('Serving Razorpay Key ID:', keyId.startsWith('rzp_test') ? 'TEST/PLACEHOLDER' : 'LIVE/PROD');
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    if (!keyId) {
+      return res.status(500).json({ error: 'Razorpay Key ID not configured' });
+    }
     res.json({ keyId });
   });
 
   // Razorpay Order Creation API
   app.post('/api/create-order', async (req, res) => {
     const { amount, currency = 'INR', receipt } = req.body;
-    console.log(`Creating order for amount: ${amount} ${currency}`);
     
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
     try {
       const options = {
-        amount: Math.round(amount * 100), // Ensure it's an integer
+        amount: Math.round(amount * 100), // amount in the smallest currency unit (paise)
         currency,
-        receipt,
+        receipt: receipt || `receipt_${Date.now()}`,
       };
       const order = await razorpay.orders.create(options);
-      console.log('Order created successfully:', order.id);
       res.json(order);
     } catch (error: any) {
-      console.error('Razorpay Order Creation Error:', error);
       res.status(500).json({ 
         error: 'Failed to create order', 
-        details: error.message || 'Unknown error',
-        code: error.code || 'UNKNOWN'
+        details: error.message || 'Unknown error'
       });
     }
   });

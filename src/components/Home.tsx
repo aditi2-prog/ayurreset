@@ -564,13 +564,10 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('Razorpay SDK available:', !!(window as any).Razorpay);
     if (!(window as any).Razorpay) {
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
-      script.onload = () => console.log('Razorpay SDK loaded dynamically');
-      script.onerror = () => console.error('Failed to load Razorpay SDK');
       document.body.appendChild(script);
     }
   }, []);
@@ -613,11 +610,9 @@ export default function Home() {
         handler: function (response: any) {
           setShowThankYou(true);
           setShowAssessment(false);
-          console.log('Payment Success:', response);
         },
         modal: {
           ondismiss: function() {
-            console.log('Payment modal closed');
           }
         },
         prefill: {
@@ -632,12 +627,10 @@ export default function Home() {
 
       const rzp = new (window as any).Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error);
         alert(`Payment Failed: ${response.error.description}`);
       });
       rzp.open();
     } catch (error: any) {
-      console.error('Payment Error:', error);
       alert(`Payment Error: ${error.message || 'Something went wrong. Please try again.'}`);
     }
   };
