@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+console.log('Available Environment Variables:', Object.keys(process.env).filter(key => key.includes('RAZORPAY')));
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -14,6 +16,8 @@ const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_secret_placeholder',
 });
+
+console.log('Razorpay Initialized with Key ID:', process.env.RAZORPAY_KEY_ID ? 'PRESENT' : 'MISSING');
 
 async function startServer() {
   const app = express();
@@ -23,24 +27,32 @@ async function startServer() {
 
   // Razorpay Config API
   app.get('/api/razorpay-key', (req, res) => {
-    res.json({ keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder' });
+    const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder';
+    console.log('Serving Razorpay Key ID:', keyId.startsWith('rzp_test') ? 'TEST/PLACEHOLDER' : 'LIVE/PROD');
+    res.json({ keyId });
   });
 
   // Razorpay Order Creation API
   app.post('/api/create-order', async (req, res) => {
     const { amount, currency = 'INR', receipt } = req.body;
+    console.log(`Creating order for amount: ${amount} ${currency}`);
     
     try {
       const options = {
-        amount: amount * 100, // amount in the smallest currency unit
+        amount: Math.round(amount * 100), // Ensure it's an integer
         currency,
         receipt,
       };
       const order = await razorpay.orders.create(options);
+      console.log('Order created successfully:', order.id);
       res.json(order);
-    } catch (error) {
-      console.error('Razorpay Error:', error);
-      res.status(500).json({ error: 'Failed to create order' });
+    } catch (error: any) {
+      console.error('Razorpay Order Creation Error:', error);
+      res.status(500).json({ 
+        error: 'Failed to create order', 
+        details: error.message || 'Unknown error',
+        code: error.code || 'UNKNOWN'
+      });
     }
   });
 

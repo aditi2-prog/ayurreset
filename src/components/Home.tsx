@@ -563,6 +563,18 @@ export default function Home() {
   const [showThankYou, setShowThankYou] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log('Razorpay SDK available:', !!(window as any).Razorpay);
+    if (!(window as any).Razorpay) {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => console.log('Razorpay SDK loaded dynamically');
+      script.onerror = () => console.error('Failed to load Razorpay SDK');
+      document.body.appendChild(script);
+    }
+  }, []);
+
   const handlePayment = async (amount: number) => {
     try {
       // 1. Get Razorpay Key ID
@@ -579,7 +591,15 @@ export default function Home() {
       const order = await response.json();
 
       if (!order.id) {
-        throw new Error('Failed to create order');
+        console.error('Order creation failed:', order);
+        const errorMsg = order.details || 'Failed to create order on server. Please check your Razorpay keys.';
+        alert(`Error: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      if (!(window as any).Razorpay) {
+        alert('Razorpay SDK not loaded. Please check your internet connection or reload the page.');
+        return;
       }
 
       const options = {
@@ -595,6 +615,11 @@ export default function Home() {
           setShowAssessment(false);
           console.log('Payment Success:', response);
         },
+        modal: {
+          ondismiss: function() {
+            console.log('Payment modal closed');
+          }
+        },
         prefill: {
           name: "User Name",
           email: "user@example.com",
@@ -606,10 +631,14 @@ export default function Home() {
       };
 
       const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response.error);
+        alert(`Payment Failed: ${response.error.description}`);
+      });
       rzp.open();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment Error:', error);
-      alert('Something went wrong with the payment. Please try again.');
+      alert(`Payment Error: ${error.message || 'Something went wrong. Please try again.'}`);
     }
   };
 
